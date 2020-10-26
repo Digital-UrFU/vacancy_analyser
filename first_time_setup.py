@@ -65,7 +65,7 @@ apache_conf = APACHE_CONF_TEMPLATE.replace("{DOMAIN}", DOMAIN)
 
 # writing files
 open("postgres.env", "w").write(postgres_env)
-open("docker_compose.yml", "w").write(docker_compose)
+open("docker-compose.yml", "w").write(docker_compose)
 open("hadoop_data/apache/apache.conf", "w").write(apache_conf)
 open("hadoop_data/apache/apache_htpasswd", "w").write(APACHE_CREDS)
 open("hadoop_data/etc_hadoop/httpfs-signature.secret", "w").write(HTTPFS_SIGNATURE)
