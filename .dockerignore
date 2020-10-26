@@ -1,0 +1,7 @@
+data/
+postgres_data/
+hist/
+hist_data/
+hadoop_data/datanode/
+hadoop_data/historyserver/
+hadoop_data/namenode/

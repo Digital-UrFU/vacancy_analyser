@@ -1,0 +1,200 @@
+version: '2.0'
+services:
+  vacancy_downloader:
+    build: .
+    command:
+      - "sh"
+      - "-c"
+      - "chown vacancy_downloader:vacancy_downloader data && runuser -l vacancy_downloader -c 'python3 periodic_run.py'"
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+        - ./:/home/vacancy_downloader/
+        - /etc/localtime:/etc/localtime:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "100"
+        max-size: "1000m"
+    mem_limit: 2048m
+
+  hist_vacancy_downloader:
+    build: .
+    command: ["python3", "get_hist_vacancies.py"]
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+        - ./:/home/vacancy_downloader/
+        - /etc/localtime:/etc/localtime:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "100"
+        max-size: "1000m"
+    mem_limit: 2048m
+
+  hist_habr_downloader:
+    build: .
+    command: ["python3", "get_habr.py"]
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+        - ./:/home/vacancy_downloader/
+        - /etc/localtime:/etc/localtime:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "100"
+        max-size: "1000m"
+    mem_limit: 2048m
+    
+  feeder_postgres:
+    build: .
+    user: vacancy_downloader
+    command: ["python3", "feeder_postgres.py"]
+    restart: unless-stopped
+    volumes:
+      - ./:/home/vacancy_downloader/
+      - /etc/localtime:/etc/localtime:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "100"
+        max-size: "1000m"
+    mem_limit: 2048m
+    env_file:
+      - postgres.env
+
+  db:
+    image: postgres:12.4
+    restart: unless-stopped
+    ports:
+        - "0.0.0.0:5432:5432"
+    volumes:
+        - ./postgres_data/:/var/lib/postgresql/data/
+    env_file:
+        - postgres.env
+
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:9870:9870
+      - 127.0.0.1:9000:9000
+    volumes:
+      - ./hadoop_data/namenode:/hadoop/dfs/name
+    environment:
+      - CLUSTER_NAME=test
+    env_file:
+      - ./hadoop.env
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    restart: unless-stopped
+    volumes:
+      - ./hadoop_data/datanode:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - ./hadoop.env
+  
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    restart: unless-stopped
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864"
+    env_file:
+      - ./hadoop.env
+
+  nodemanager1:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager
+    restart: unless-stopped
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
+    env_file:
+      - ./hadoop.env
+  
+  historyserver:
+    image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
+    container_name: historyserver
+    restart: unless-stopped
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
+    volumes:
+      - ./hadoop_data/historyserver:/hadoop/yarn/timeline
+    env_file:
+      - ./hadoop.env
+  
+  jupyter:
+    image: jupyter/pyspark-notebook:6d42503c684f
+    restart: unless-stopped
+    user: root
+    environment:
+      - CHOWN_EXTRA=/home/jovyan/work
+      - CHOWN_EXTRA_OPTS=-R
+      - HADOOP_CONF_DIR=/etc/hadoop
+    command:
+      - "start-notebook.sh"
+      - "--NotebookApp.password={JUPYTER_CREDS}"
+      - "--NotebookApp.allow_remote_accessBool=True"
+      - "--notebook-dir=/home/jovyan/work/notebooks/"
+    volumes:
+      - ./notebooks:/home/jovyan/work/notebooks/
+      - ./hadoop_data/etc_hadoop:/etc/hadoop/
+      - ./hadoop_data/jupyter/postgresql-42.2.16.jar:/usr/local/spark-3.0.0-bin-hadoop3.2/jars/postgresql-42.2.16.jar
+    mem_limit: 8192m
+  
+  feeder_hadoop:
+    build:
+      context: "./hadoop_data/feeder_hadoop"
+    restart: unless-stopped
+    user: jovyan
+    environment:
+      - HADOOP_CONF_DIR=/etc/hadoop
+    command: ["python3", "feeder_hadoop.py"]
+    volumes:
+      - ./feeder_hadoop.py:/home/jovyan/feeder_hadoop.py
+      - ./hadoop_data/etc_hadoop:/etc/hadoop/
+      - ./hadoop_data/jupyter/postgresql-42.2.16.jar:/usr/local/spark-3.0.0-bin-hadoop3.2/jars/postgresql-42.2.16.jar
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "100"
+        max-size: "1000m"      
+    env_file:
+        - postgres.env
+
+  apache:
+    build:
+      context: "./hadoop_data/apache"
+    restart: unless-stopped
+    volumes:
+      - ./hadoop_data/apache/apache.conf:/usr/local/apache2/conf/httpd.conf:ro
+      - ./hadoop_data/apache/apache_htpasswd:/usr/local/apache2/conf/htpasswd
+      - ./hadoop_data/apache/apache_certs:/usr/local/apache2/conf/certs/
+    ports:
+      - "443:443"
+      - "4430:4430"
+      
+  metrics:
+    build: .
+    command: ["python3", "metrics_exporter.py"]
+    restart: unless-stopped
+    user: vacancy_downloader
+    volumes:
+        - ./:/home/vacancy_downloader/
+        - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "9144:9144"
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "100"
+        max-size: "1000m"
+    mem_limit: 2048m
+    env_file:
+        - postgres.env

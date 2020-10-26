@@ -1,0 +1,6 @@
+postgres.env
+docker_compose.yml
+hadoop_data/apache/apache_certs/
+hadoop_data/apache/apache.conf
+hadoop_data/apache/apache_htpasswd
+hadoop_data/etc_hadoop/httpfs-signature.secret
