@@ -5,7 +5,7 @@ import hashlib
 import base64
 
 open("postgres.env", "a").close()
-open("docker_compose.yml", "a").close()
+open("docker-compose.yml", "a").close()
 open("hadoop_data/apache/apache.conf", "a").close()
 open("hadoop_data/apache/apache_htpasswd", "a").close()
 open("hadoop_data/etc_hadoop/httpfs-signature.secret", "a").close()
@@ -14,13 +14,13 @@ DOCKER_COMPOSE_TEMPLATE = open("docker-compose.yml.template", "r").read()
 APACHE_CONF_TEMPLATE = open("hadoop_data/apache/apache.conf.template", "r").read()
 
 if (open("postgres.env").read() or
-    open("docker_compose.yml").read() or
+    open("docker-compose.yml").read() or
     open("hadoop_data/apache/apache.conf").read() or
     open("hadoop_data/apache/apache_htpasswd").read() or
     open("hadoop_data/etc_hadoop/httpfs-signature.secret").read()):
 
     print("First time setup already done, exiting")
-    print("To rerun it, execute 'rm postgres.env docker_compose.yml hadoop_data/apache/apache.conf hadoop_data/apache/apache_htpasswd hadoop_data/etc_hadoop/httpfs-signature.secret'")
+    print("To rerun it, execute 'rm postgres.env docker-compose.yml hadoop_data/apache/apache.conf hadoop_data/apache/apache_htpasswd hadoop_data/etc_hadoop/httpfs-signature.secret'")
     exit(1)
 
 
@@ -39,9 +39,9 @@ HTTPFS_SIGNATURE = secrets.token_urlsafe(21)
 
 print()
 print("Please write down this information somewhere!")
-print(f"Postgres credentials: user {POSTGRES_USER}, password {POSTGRES_PASSWORD}")
-print(f"Jupyter password {JUPYTER_PASS}")
-print(f"HDFS web credentials: user hadoop, password {APACHE_PASS}")
+print(f"Jupyter at https://{DOMAIN}/, password {JUPYTER_PASS}")
+print(f"Postgres: 'psql -h {DOMAIN} -U vacancy', password {POSTGRES_PASSWORD}")
+print(f"HDFS web-interface at https://{DOMAIN}:4430, user hadoop, password {APACHE_PASS}")
 
 postgres_env = f"""POSTGRES_USER={POSTGRES_USER}
 POSTGRES_PASSWORD={POSTGRES_PASSWORD}
@@ -50,7 +50,7 @@ POSTGRES_PASSWORD={POSTGRES_PASSWORD}
 JUPYTER_SALT = secrets.token_hex(6)
 JUPYTER_CREDS = f"sha1:{JUPYTER_SALT}:{hashlib.sha1((JUPYTER_PASS+JUPYTER_SALT).encode()).hexdigest()}"
 
-APACHE_CREDS = f"hadoop:{{SHA}}{base64.b64encode(hashlib.sha1(APACHE_PASS.encode()).digest())}"
+APACHE_CREDS = f"hadoop:{{SHA}}{base64.b64encode(hashlib.sha1(APACHE_PASS.encode()).digest()).decode()}"
 
 if "{JUPYTER_CREDS}" not in DOCKER_COMPOSE_TEMPLATE:
     print("Warning: no {JUPYTER_CREDS} in docker_compose template, possibly broken file")

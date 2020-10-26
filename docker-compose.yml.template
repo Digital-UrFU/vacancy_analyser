@@ -140,7 +140,7 @@ services:
     command:
       - "start-notebook.sh"
       - "--NotebookApp.password={JUPYTER_CREDS}"
-      - "--NotebookApp.allow_remote_accessBool=True"
+      - "--NotebookApp.allow_remote_access=True"
       - "--notebook-dir=/home/jovyan/work/notebooks/"
     volumes:
       - ./notebooks:/home/jovyan/work/notebooks/

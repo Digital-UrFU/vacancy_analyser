@@ -1,5 +1,5 @@
 postgres.env
-docker_compose.yml
+docker-compose.yml
 hadoop_data/apache/apache_certs/
 hadoop_data/apache/apache.conf
 hadoop_data/apache/apache_htpasswd
