@@ -43,3 +43,10 @@
 1. ./data # данные о вакансиях в формате csv, обновляются раз в неделю.
 2. ./hist_data # исторические данные о вакансиях в формате csv, система делает 1 запрос к API в секунду.
 3. ./habr_data # статьи с habr.com в формате csv.
+
+## Публикации
+
+Если вы используете нашу систему, пожалуйста, процитируйте статью:
+
+Sozykin A., Koshelev A., Bersenev A., Shadrin D., Aksenov A., Kuklin E. Developing Educational Programs Using Russian IT Job Market Analysis // 
+(2021) Proceedings - 2021 Ural Symposium on Biomedical Engineering, Radioelectronics and Information Technology, USBEREIT 2021, art. no. 9454998, pp. 391 - 394. DOI: 10.1109/USBEREIT51232.2021.9454998
